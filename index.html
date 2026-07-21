@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>You are all set · Ross</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #121214;
+      --card: #1c1c1e;
+      --text: #f4f4f7;
+      --muted: #9a9aa2;
+      --accent: #d24587;
+      --ok: #30d158;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(ellipse at top, rgba(210, 69, 135, 0.18), transparent 55%),
+        var(--bg);
+      color: var(--text);
+    }
+    .card {
+      width: min(440px, 100%);
+      background: var(--card);
+      border: 1px solid #2f2f33;
+      border-radius: 24px;
+      padding: 36px 28px 32px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+      text-align: center;
+    }
+    .badge {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 20px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      background: rgba(48, 209, 88, 0.14);
+      color: var(--ok);
+      font-size: 32px;
+      font-weight: 700;
+    }
+    h1 {
+      margin: 0 0 12px;
+      font-size: 28px;
+      letter-spacing: -0.02em;
+    }
+    p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: 16px;
+    }
+    .brand {
+      margin-top: 28px;
+      color: var(--accent);
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <div class="badge" aria-hidden="true">✓</div>
+    <h1 id="title">You are all set</h1>
+    <p id="message">Your email is confirmed. Open the <strong>Ross</strong> app and sign in with the email and password your salon gave you.</p>
+    <div class="brand">Ross Salon</div>
+  </main>
+  <script>
+    (function () {
+      var hash = window.location.hash || "";
+      var params = new URLSearchParams(hash.replace(/^#/, ""));
+      var type = (params.get("type") || new URLSearchParams(window.location.search).get("type") || "").toLowerCase();
+      var title = document.getElementById("title");
+      var message = document.getElementById("message");
+      if (type === "recovery") {
+        title.textContent = "Password link opened";
+        message.innerHTML = "Your password reset link worked. Open the <strong>Ross</strong> app and sign in, or use Forgot password again if you still need a new password.";
+      } else if (type === "signup" || type === "invite" || type === "email") {
+        title.textContent = "Email confirmed";
+        message.innerHTML = "Your email is confirmed. Open the <strong>Ross</strong> app and sign in with the email and password your salon gave you.";
+      }
+    })();
+  </script>
+</body>
+</html>

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>You are all set · Ross</title>
+  <title>Ross · Account</title>
   <style>
     :root {
       color-scheme: dark;
@@ -13,6 +13,9 @@
       --muted: #9a9aa2;
       --accent: #d24587;
       --ok: #30d158;
+      --danger: #ff453a;
+      --field: #2c2c2f;
+      --border: #55555b;
     }
     * { box-sizing: border-box; }
     body {
@@ -48,6 +51,15 @@
       font-size: 32px;
       font-weight: 700;
     }
+    .badge.warn {
+      background: rgba(210, 69, 135, 0.16);
+      color: var(--accent);
+      font-size: 28px;
+    }
+    .badge.err {
+      background: rgba(255, 69, 58, 0.14);
+      color: var(--danger);
+    }
     h1 {
       margin: 0 0 12px;
       font-size: 28px;
@@ -67,29 +79,252 @@
       text-transform: uppercase;
       font-size: 12px;
     }
+    form {
+      margin-top: 24px;
+      text-align: left;
+    }
+    label {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    input {
+      width: 100%;
+      margin-bottom: 14px;
+      padding: 14px 16px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--field);
+      color: var(--text);
+      font-size: 16px;
+      font-weight: 600;
+    }
+    input:focus {
+      outline: 2px solid rgba(210, 69, 135, 0.55);
+      outline-offset: 1px;
+    }
+    button {
+      width: 100%;
+      margin-top: 6px;
+      padding: 15px 16px;
+      border: 0;
+      border-radius: 12px;
+      background: var(--accent);
+      color: #fff;
+      font-size: 17px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    button:disabled {
+      opacity: 0.55;
+      cursor: default;
+    }
+    .error {
+      margin-top: 12px;
+      color: var(--danger);
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 1.4;
+    }
+    .hint {
+      margin-top: 10px;
+      font-size: 13px;
+    }
+    [hidden] { display: none !important; }
   </style>
 </head>
 <body>
   <main class="card">
-    <div class="badge" aria-hidden="true">✓</div>
-    <h1 id="title">You are all set</h1>
-    <p id="message">Your email is confirmed. Open the <strong>Ross</strong> app and sign in with the email and password your salon gave you.</p>
+    <div id="loading">
+      <div class="badge warn" aria-hidden="true">…</div>
+      <h1>Checking link</h1>
+      <p>One moment while we verify your email link.</p>
+    </div>
+
+    <div id="confirm" hidden>
+      <div class="badge" aria-hidden="true">✓</div>
+      <h1>Email confirmed</h1>
+      <p>Your email is confirmed. Open the <strong>Ross</strong> app and sign in with the email and password your salon gave you.</p>
+    </div>
+
+    <div id="set-password" hidden>
+      <div class="badge warn" aria-hidden="true">🔑</div>
+      <h1>Set your password</h1>
+      <p>Choose a password for your Ross account, then open the app and sign in.</p>
+      <form id="password-form">
+        <label for="password">New password</label>
+        <input id="password" name="password" type="password" autocomplete="new-password" minlength="6" required placeholder="Min. 6 characters" />
+        <label for="confirm-password">Confirm password</label>
+        <input id="confirm-password" name="confirm-password" type="password" autocomplete="new-password" minlength="6" required placeholder="Repeat password" />
+        <button id="submit" type="submit">Save password</button>
+        <p id="form-error" class="error" hidden></p>
+      </form>
+    </div>
+
+    <div id="done" hidden>
+      <div class="badge" aria-hidden="true">✓</div>
+      <h1>Password saved</h1>
+      <p>Open the <strong>Ross</strong> app and sign in with your email and new password.</p>
+    </div>
+
+    <div id="error" hidden>
+      <div class="badge err" aria-hidden="true">!</div>
+      <h1>Link issue</h1>
+      <p id="error-message">This link is invalid or has expired. Ask your salon manager to send a new login invite, or use Forgot password in the app.</p>
+    </div>
+
     <div class="brand">Ross Salon</div>
   </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.8/dist/umd/supabase.min.js"></script>
   <script>
     (function () {
-      var hash = window.location.hash || "";
-      var params = new URLSearchParams(hash.replace(/^#/, ""));
-      var type = (params.get("type") || new URLSearchParams(window.location.search).get("type") || "").toLowerCase();
-      var title = document.getElementById("title");
-      var message = document.getElementById("message");
-      if (type === "recovery") {
-        title.textContent = "Password link opened";
-        message.innerHTML = "Your password reset link worked. Open the <strong>Ross</strong> app and sign in, or use Forgot password again if you still need a new password.";
-      } else if (type === "signup" || type === "invite" || type === "email") {
-        title.textContent = "Email confirmed";
-        message.innerHTML = "Your email is confirmed. Open the <strong>Ross</strong> app and sign in with the email and password your salon gave you.";
+      var SUPABASE_URL = "https://emmnrccjkxdkjxwtmtda.supabase.co";
+      // Publishable anon key (same as mobile app) — safe for public pages.
+      var SUPABASE_ANON_KEY =
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVtbW5yY2Nqa3hka2p4d3RtdGRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3MjIzMjgsImV4cCI6MjA5ODI5ODMyOH0.y5L1_uUfrtR_kJQ-x7C_ORHfOdiUhJZ2Eb8VVCnrn2M";
+
+      var loadingEl = document.getElementById("loading");
+      var confirmEl = document.getElementById("confirm");
+      var setPasswordEl = document.getElementById("set-password");
+      var doneEl = document.getElementById("done");
+      var errorEl = document.getElementById("error");
+      var errorMessageEl = document.getElementById("error-message");
+      var form = document.getElementById("password-form");
+      var formError = document.getElementById("form-error");
+      var submitBtn = document.getElementById("submit");
+
+      function show(el) {
+        loadingEl.hidden = true;
+        confirmEl.hidden = true;
+        setPasswordEl.hidden = true;
+        doneEl.hidden = true;
+        errorEl.hidden = true;
+        el.hidden = false;
       }
+
+      function showError(message) {
+        if (message) errorMessageEl.textContent = message;
+        show(errorEl);
+      }
+
+      function paramsFromLocation() {
+        var hash = window.location.hash || "";
+        var search = window.location.search || "";
+        var hashParams = new URLSearchParams(hash.replace(/^#/, ""));
+        var queryParams = new URLSearchParams(search);
+        return {
+          type: (hashParams.get("type") || queryParams.get("type") || "").toLowerCase(),
+          accessToken: hashParams.get("access_token") || queryParams.get("access_token"),
+          refreshToken: hashParams.get("refresh_token") || queryParams.get("refresh_token"),
+          errorDescription:
+            hashParams.get("error_description") ||
+            queryParams.get("error_description") ||
+            hashParams.get("error") ||
+            queryParams.get("error"),
+        };
+      }
+
+      var params = paramsFromLocation();
+      if (params.errorDescription) {
+        showError(decodeURIComponent(params.errorDescription.replace(/\+/g, " ")));
+        return;
+      }
+
+      var supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        auth: {
+          detectSessionInUrl: true,
+          persistSession: false,
+          autoRefreshToken: false,
+        },
+      });
+
+      async function ensureSession() {
+        if (params.accessToken && params.refreshToken) {
+          var setResult = await supabase.auth.setSession({
+            access_token: params.accessToken,
+            refresh_token: params.refreshToken,
+          });
+          if (setResult.error) throw setResult.error;
+          return setResult.data.session;
+        }
+
+        var getResult = await supabase.auth.getSession();
+        if (getResult.error) throw getResult.error;
+        return getResult.data.session;
+      }
+
+      async function boot() {
+        try {
+          var session = await ensureSession();
+          var type = params.type;
+
+          if (type === "recovery" || type === "invite" || type === "magiclink") {
+            if (!session) {
+              showError("This password link is invalid or has expired. Ask your manager to send a new login invite.");
+              return;
+            }
+            show(setPasswordEl);
+            return;
+          }
+
+          if (type === "signup" || type === "email" || type === "email_change") {
+            show(confirmEl);
+            return;
+          }
+
+          // Fallback: if we have a recovery session without type, still allow set password.
+          if (session) {
+            show(setPasswordEl);
+            return;
+          }
+
+          show(confirmEl);
+        } catch (err) {
+          showError(err && err.message ? err.message : "Could not open this link.");
+        }
+      }
+
+      form.addEventListener("submit", async function (event) {
+        event.preventDefault();
+        formError.hidden = true;
+
+        var password = document.getElementById("password").value;
+        var confirmPassword = document.getElementById("confirm-password").value;
+
+        if (password.length < 6) {
+          formError.textContent = "Password must be at least 6 characters.";
+          formError.hidden = false;
+          return;
+        }
+        if (password !== confirmPassword) {
+          formError.textContent = "Passwords do not match.";
+          formError.hidden = false;
+          return;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Saving…";
+
+        try {
+          var result = await supabase.auth.updateUser({ password: password });
+          if (result.error) throw result.error;
+          await supabase.auth.signOut();
+          show(doneEl);
+        } catch (err) {
+          formError.textContent =
+            err && err.message ? err.message : "Could not save password. Try again.";
+          formError.hidden = false;
+          submitBtn.disabled = false;
+          submitBtn.textContent = "Save password";
+        }
+      });
+
+      boot();
     })();
   </script>
 </body>
